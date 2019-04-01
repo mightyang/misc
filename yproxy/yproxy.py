@@ -13,13 +13,13 @@ import socket, random, logging, os, json, threading, hashlib, time, Queue
 yl = logging.getLogger(__name__)
 
 
-class worker(threading.Thread):
+class connector(threading.Thread):
     __addr = ()
     __socket = None
     __time = 0
     __status = None
     __group = None
-    self.__host = ''
+    __host = ''
 
     def __init__(self, host='127.0.0.1', group=None):
         threading.Thread.__init__(self)
@@ -46,7 +46,6 @@ class worker(threading.Thread):
     def address(self):
         return self.__addr
 
-
     def pkgData(self, data):
         self.__key = self.md5()
         return '{}{}'.format(self.__key, data)
@@ -58,9 +57,10 @@ class worker(threading.Thread):
         return (data[:32], data[32:])
 
 
-class receiver(worker):
+
+class receiver(connector):
     def __init__(self, host='127.0.0.1', group=None):
-        worker.__init__(self, host, group)
+        connector.__init__(self, host, group)
         self.__group = group
 
     def run(self):
@@ -80,7 +80,6 @@ class receiver(worker):
                 yl.error(e.message)
                 continue
             if data == signal.STOP:
-                self.__status = status.STOPPED
                 break
             elif len(data) > 0:
                 # 解析收到的数据
@@ -95,12 +94,13 @@ class receiver(worker):
                 else:
                     conn.send(returnCode.KEY_ERROR)
                     break
+        self.__status = status.STOPPED
         self.__socket.close()
 
 
-class sender(worker):
+class sender(connector):
     def __init__(self, host='127.0.0.1', group=None):
-        worker.__init__(self, host)
+        connector.__init__(self, host)
         self.__group = group
 
     def run(self):
@@ -120,7 +120,6 @@ class sender(worker):
                 yl.error(e.message)
                 continue
             if data == signal.STOP:
-                self.__status = status.STOPPED
                 break
             elif len(data) > 0:
                 # 解析收到的数据
@@ -132,16 +131,18 @@ class sender(worker):
                 else:
                     conn.send(returnCode.KEY_ERROR)
                     break
+        self.__status = status.STOPPED
         self.__socket.close()
 
 
-class workerGroup():
+class worker():
     '''
     receiver and senders
     '''
-    def __init__(self, sc=5):
+    def __init__(self, sc=3):
         self.__receiver = None
         self.__senders = []
+        self.__workers = []
         self.__csender = None
         self.__queue = Queue.Queue()
         # sender线程的数量
@@ -176,8 +177,13 @@ class workerGroup():
         # 返回所有key和端口 [receiver, senders]
         return [(self.__receiver.key(), self.__receiver.address[1])] + [(s.key(), s.address[1]) for s in self.__senders]
 
-    #  def send(self, data):
-    #      self.currentSender.
+
+class workerGroup():
+    def __init__(self):
+        self.__worker = worker()
+
+    def conInfo(self):
+        return self.__worker.conInfo()
 
 
 class yserver():
@@ -246,7 +252,7 @@ class yserver():
 
     def createWorkerGroup(self):
         wg = workerGroup()
-        self.__workerGroups.append(wk)
+        self.__workerGroups.append(wg)
         return wg
 
     def close(self):
