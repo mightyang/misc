@@ -3,7 +3,7 @@
 # File              : yBase.py
 # Author            : yang <mightyang@hotmail.com>
 # Date              : 10.06.2019
-# Last Modified Date: 18.06.2019
+# Last Modified Date: 21.06.2019
 # Last Modified By  : yang <mightyang@hotmail.com>
 
 import re
@@ -22,8 +22,8 @@ class yVersion():
 
 
 class yBase(object):
-    def __init__(self):
-        self.parent = None
+    def __init__(self, parent=None):
+        self.parent = parent
         self.version = yVersion()
 
 
