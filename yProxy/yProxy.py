@@ -12,6 +12,7 @@ import traceback
 from yLogging import lg
 import socket
 import threading
+import re
 
 
 DATA_BLOCKSIZE = 4096
@@ -227,21 +228,22 @@ class yClientDataTransfer(yTransfer):
     def run(self):
         # 等待 requestQueue 中的请求
         while True:
-            data = self.requestQueue.get()
-            # 如果 data 信息为结束信息，则结束获取
-            if data == QUEUE_LAST_CODE_BASE64:
-                lg.debug(u'yClientDataTransfer 请求获取结束')
-                break
-            # 发送请求到服务端
-            self.conn.send(data)
-        # 等待服务端发送要访问的网页内容
-        while True:
-            data = self.conn.recv(DATA_BLOCKSIZE)
-            if data == TRANSFER_LAST_CODE_BASE64:
-                lg.debug(u'yClientDataTransfer 网页内容获取结束')
-                break
-            # 将收到的网页内容存到 queue 中
-            self.htmlQueue.put(data)
+            while True:
+                data = self.requestQueue.get()
+                # 如果 data 信息为结束信息，则结束获取
+                if data == QUEUE_LAST_CODE_BASE64:
+                    lg.debug(u'yClientDataTransfer 请求获取结束')
+                    break
+                # 发送请求到服务端
+                self.conn.send(data)
+            # 等待服务端发送要访问的网页内容
+            while True:
+                data = self.conn.recv(DATA_BLOCKSIZE)
+                if data == TRANSFER_LAST_CODE_BASE64:
+                    lg.debug(u'yClientDataTransfer 网页内容获取结束')
+                    break
+                # 将收到的网页内容存到 queue 中
+                self.htmlQueue.put(data)
         # 接收完毕后结束
         self.stop()
 
@@ -257,16 +259,25 @@ class yClientTransfer(yTransfer):
 
     def run(self):
         # 收集 conn 的请求
+        # 获取请求第一行
+        data = self.conn.recv(DATA_BLOCKSIZE)
+        # 获取第一行中的网页地址
+        firstLine = data.split('\n')[0]
+        # 获取第一行中的 url 加密后放到 requestQueue 里
+        self.requestQueue.put(self.encode(re.findall(r'.+\s(.+)\s.+', firstLine)[-1]))
+        # 将请求存到 requestQueue 中
+        self.requestQueue.put(data)
         while True:
             data = self.conn.recv(DATA_BLOCKSIZE)
-            if data == '\r\n0\r\n\r\n':
-                pass
-        # 加密请求
-        # 将请求存到 requestQueue 中
+            if len(data) == 0:
+                break
+            # 将请求加密存到 requestQueue 中
+            self.requestQueue.put(self.encode(data))
         # 等待 htmlQueue 中的内容
-        # 解密内容
-        # 发送 htmlQueue 中的内容给浏览器
-        # 发送完毕后结束
+        while True:
+            # 解密内容
+            # 发送 htmlQueue 中的内容给浏览器
+            # 发送完毕后结束
         pass
 
 
