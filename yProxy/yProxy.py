@@ -3,7 +3,7 @@
 # File              : yProxy.py
 # Author            : yang <mightyang@hotmail.com>
 # Date              : 23.06.2019
-# Last Modified Date: 26.06.2019
+# Last Modified Date: 27.06.2019
 # Last Modified By  : yang <mightyang@hotmail.com>
 
 
@@ -215,6 +215,16 @@ class yTransfer(yThread):
     def decode(self, data):
         return data
 
+    def request(self, data):
+        splitter = '\r\n\r\n'
+        if splitter in data:
+            requestLines = data.split(splitter)[0].split('\r\n')[:-1]
+            initialLine = re.findall(r'.+\s(.+)\s.+', requestLines[0])
+            headerLines = {key.strip():value.strip() for headerLine in requestLines[1:] for key, value in headerLine.split(':')}
+            return (initialLine, headerLines)
+        else:
+            return False
+
 
 class yClientDataTransfer(yTransfer):
     """
@@ -259,8 +269,13 @@ class yClientTransfer(yTransfer):
 
     def run(self):
         # 收集 conn 的请求
-        # 获取请求第一行
-        data = self.conn.recv(DATA_BLOCKSIZE)
+        # 获取请求报文
+        data = ''
+        while True:
+            data += self.conn.recv(DATA_BLOCKSIZE)
+            headerLines = self.request(data)
+            if headerLines:
+
         # 获取第一行中的网页地址
         firstLine = data.split('\n')[0]
         # 获取第一行中的 url 加密后放到 requestQueue 里
@@ -278,7 +293,7 @@ class yClientTransfer(yTransfer):
             # 解密内容
             # 发送 htmlQueue 中的内容给浏览器
             # 发送完毕后结束
-        pass
+            pass
 
 
 class yServerDataTransfer(yTransfer):
