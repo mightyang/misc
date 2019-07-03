@@ -8,6 +8,4 @@
 
 import re
 
-#  print(re.findall(r'.+\s(http://){0,1}(.+)\s.+', 'GET http://baidu.com/?search= HTTP/1.1'))
-a = {i:j for i, j in (('a',2), ('b',4))}
-print a['a']
+print(len('\n'))
