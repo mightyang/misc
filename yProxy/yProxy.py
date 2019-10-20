@@ -3,7 +3,7 @@
 # File              : yProxy.py
 # Author            : yang <mightyang@hotmail.com>
 # Date              : 23.06.2019
-# Last Modified Date: 03.07.2019
+# Last Modified Date: 04.07.2019
 # Last Modified By  : yang <mightyang@hotmail.com>
 
 
@@ -167,12 +167,15 @@ class yClientManager(yManager):
 
 
 class yServerManager(yManager):
-    def __init__(self, parent=None, addr=('127.0.0.1', 0)):
+    def __init__(self, parent=None, addr=('127.0.0.1', 11951)):
         yManager.__init__(self, parent, addr)
         self.netConnQueue = Queue.Queue()
 
     def run(self):
-        pass
+        # 绑定端口
+        if not self.bindAddr():
+            return
+        self.s.listen(10)
 
     def stop(self):
         self.dataTransfer.stop()
